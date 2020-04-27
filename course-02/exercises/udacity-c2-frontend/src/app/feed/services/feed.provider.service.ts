@@ -19,8 +19,8 @@ export class FeedProviderService {
     return Promise.resolve(this.currentFeed$);
   }
 
-  async uploadFeedItem(caption: string, file: File): Promise<any> {
-    const res = await this.api.upload('/feed', file, {caption: caption, url: file.name});
+  async uploadFeedItem(caption: string, file: File, transform: boolean): Promise<any> {
+    const res = await this.api.upload('/feed', file, {caption, url: file.name, transform});
     const feed = [res, ...this.currentFeed$.value];
     this.currentFeed$.next(feed);
     return res;
