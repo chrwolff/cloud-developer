@@ -1,7 +1,7 @@
 <form [formGroup]="uploadForm" (submit)="onSubmit($event)">`
     <label>
         <input type="file" (change)="selectImage($event)" accept="image/*" style="display:none"/>
-        <img *ngIf="previewDataUrl" [src]="previewDataUrl" style="width:50px; height: 50px;" />
+        <img *ngIf="previewDataUrl" [src]="previewDataUrl" style="width:50px; height: 50px;"/>
         <a *ngIf="!previewDataUrl" ion-button color="secondary">
             Select a Photo
         </a>
@@ -9,11 +9,15 @@
     <ion-item>
         <ion-label position="floating" color="primary">Caption</ion-label>
         <ion-input type="text" formControlName="caption" required></ion-input>
-      </ion-item>
-      <ion-button 
-        color="primary" 
-        type="submit"
-        [disabled]="!uploadForm.valid || !file">
+    </ion-item>
+    <ion-item>
+        <ion-label color="primary">Apply grayscale transformation</ion-label>
+        <ion-checkbox formControlName="transform"></ion-checkbox>
+    </ion-item>
+    <ion-button
+            color="primary"
+            type="submit"
+            [disabled]="!uploadForm.valid || !file">
         Post
-      </ion-button>
+    </ion-button>
 </form>

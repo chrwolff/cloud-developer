@@ -1,68 +1,72 @@
-import { Component, OnInit } from '@angular/core';
-import { ApiService } from 'src/app/api/api.service';
+import {Component, OnInit} from '@angular/core';
+import {ApiService} from 'src/app/api/api.service';
 
-import { Validators, FormBuilder, FormGroup, FormControl } from '@angular/forms';
-import { FeedProviderService } from '../services/feed.provider.service';
+import {Validators, FormBuilder, FormGroup, FormControl} from '@angular/forms';
+import {FeedProviderService} from '../services/feed.provider.service';
 
-import { LoadingController, ModalController } from '@ionic/angular';
+import {LoadingController, ModalController} from '@ionic/angular';
 
 
 @Component({
-  selector: 'app-feed-upload',
-  templateUrl: './feed-upload.component.html',
-  styleUrls: ['./feed-upload.component.scss'],
+    selector: 'app-feed-upload',
+    templateUrl: './feed-upload.component.html',
+    styleUrls: ['./feed-upload.component.scss'],
 })
 export class FeedUploadComponent implements OnInit {
-  previewDataUrl;
-  file: File;
-  uploadForm: FormGroup;
+    previewDataUrl;
+    file: File;
+    uploadForm: FormGroup;
 
-  constructor(
-    private feed: FeedProviderService,
-    private formBuilder: FormBuilder,
-    private loadingController: LoadingController,
-    private modalController: ModalController
-  ) { }
-
-  ngOnInit() {
-    this.uploadForm = this.formBuilder.group({
-      caption: new FormControl('', Validators.required)
-    });
-  }
-
-  setPreviewDataUrl(file: Blob) {
-    const reader  = new FileReader();
-    reader.onloadend = () => {
-      this.previewDataUrl = reader.result;
-    };
-
-    reader.readAsDataURL(file);
-  }
-
-  selectImage(event) {
-    const file = event.srcElement.files;
-
-    if (!file) {
-      return;
+    constructor(
+        private feed: FeedProviderService,
+        private formBuilder: FormBuilder,
+        private loadingController: LoadingController,
+        private modalController: ModalController
+    ) {
     }
-    this.file = file[0];
-    this.setPreviewDataUrl(this.file);
 
-  }
+    ngOnInit() {
+        this.uploadForm = this.formBuilder.group({
+            caption: new FormControl('', Validators.required),
+            transform: new FormControl(false)
+        });
+    }
 
-  onSubmit($event) {
-    $event.preventDefault();
-    this.loadingController.create();
+    setPreviewDataUrl(file: Blob) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            this.previewDataUrl = reader.result;
+        };
 
-    if (!this.uploadForm.valid || !this.file) { return; }
-    this.feed.uploadFeedItem(this.uploadForm.controls.caption.value, this.file)
-      .then((result) => {
+        reader.readAsDataURL(file);
+    }
+
+    selectImage(event) {
+        const file = event.srcElement.files;
+
+        if (!file) {
+            return;
+        }
+        this.file = file[0];
+        this.setPreviewDataUrl(this.file);
+
+    }
+
+    onSubmit($event) {
+        $event.preventDefault();
+        this.loadingController.create();
+
+        if (!this.uploadForm.valid || !this.file) {
+            return;
+        }
+        this.feed.uploadFeedItem(this.uploadForm.controls.caption.value, this.file, this.uploadForm.controls.transform.value)
+            .then((result) => {
+                this.modalController.dismiss();
+                this.loadingController.dismiss();
+            });
+    }
+
+    cancel() {
         this.modalController.dismiss();
-        this.loadingController.dismiss();
-      });
-  }
-
-  cancel() {
-    this.modalController.dismiss();
-  }
+    }
 }

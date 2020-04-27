@@ -2,6 +2,10 @@ import {Router, Request, Response} from 'express';
 import {FeedItem} from '../models/FeedItem';
 import {requireAuth} from '../../users/routes/auth.router';
 import * as AWS from '../../../../aws';
+import axios, {AxiosResponse} from 'axios';
+import {config} from '../../../../config/config';
+
+const url = require('url');
 
 const router: Router = Router();
 
@@ -26,8 +30,8 @@ router.get('/signed-url/:fileName',
             return res.status(500).send({message: `fileName must not be empty`});
         }
 
-        const url = AWS.getPutSignedUrl(fileName);
-        res.status(201).send({url: url});
+        const putUrl = AWS.getPutSignedUrl(fileName);
+        res.status(201).send({url: putUrl});
     });
 
 // endpoint to GET a specific resource by Primary Key
@@ -84,10 +88,19 @@ router.post('/',
     async (req: Request, res: Response) => {
         try {
             const validatedBody = validateBody(req.body);
-            const item = new FeedItem(validatedBody);
+            const item = new FeedItem({
+                caption: validatedBody.caption,
+                url: validatedBody.url
+            });
             const saved_item = await item.save();
 
-            saved_item.url = AWS.getGetSignedUrl(saved_item.url);
+            const itemGetURL = AWS.getGetSignedUrl(saved_item.url);
+
+            if (validatedBody.transform) {
+                await transformImage(itemGetURL, saved_item.url);
+            }
+
+            saved_item.url = itemGetURL;
             res.status(201).send(saved_item);
         } catch (e) {
             const error: Error = e;
@@ -96,7 +109,13 @@ router.post('/',
     }
 );
 
-function validateBody(input: any): object | never {
+interface TransformedBody {
+    caption: string;
+    url: string;
+    transform: boolean;
+}
+
+function validateBody(input: any): TransformedBody {
     // check Caption is valid
     if (!input.caption) {
         throw Error('Caption is required or malformed');
@@ -107,10 +126,37 @@ function validateBody(input: any): object | never {
         throw Error('File url is required');
     }
 
+    // check transform flag is present
+    if (('transform' in input) === false) {
+        throw Error('Transform flag is missing');
+    }
+
     return {
         caption: input.caption,
-        url: input.url
+        url: input.url,
+        transform: input.transform
     };
+}
+
+async function transformImage(itemGetURL: string, originalURI: string): Promise<AxiosResponse> {
+    // create URL for image transformation server
+    const imageTransformURL = new URL('http://' + config.imageTransform.host);
+    imageTransformURL.pathname = 'filteredimage';
+    imageTransformURL.searchParams.append('image_url', itemGetURL);
+    const imageTransformURLString = imageTransformURL.toString();
+
+    // send image to transformation server
+    const axiosResponse = await axios.get(imageTransformURLString, {
+        responseType: 'arraybuffer'
+    });
+
+    // get S3 URL and send the transformed image there
+    const itemPutURL = AWS.getPutSignedUrl(originalURI);
+    return axios.put(itemPutURL, axiosResponse.data, {
+        headers: {
+            'content-type': axiosResponse.headers['content-type']
+        }
+    });
 }
 
 export const FeedRouter: Router = router;

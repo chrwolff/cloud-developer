@@ -18,5 +18,8 @@ export const config = {
     auth: {
         jwt_secret: process.env.JWT_SECRET || 'SET_ME_AS_ENV_VAR',
         salt_rounds: Number.parseInt(process.env.SALT_ROUNDS, 10) || 10
+    },
+    imageTransform: {
+        host: process.env.IMAGE_TRANSFORM_HOST || ''
     }
 };
